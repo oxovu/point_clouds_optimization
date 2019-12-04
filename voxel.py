@@ -10,7 +10,7 @@ def main():
     voxel.set_leaf_size(0.045, 0.045, 0.045)
     cloud_filtered = voxel.filter()
 
-    pcl.save(cloud_filtered, 'data/lamppost2.pcd')
+    pcl.save(cloud_filtered, 'data/lamppost_vox.pcd')
 
     print("initial size ", cloud.size)
     print("optimized size ", cloud_filtered.size)

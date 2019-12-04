@@ -15,7 +15,7 @@ def main():
     sor.set_negative(True)
     cloud_filtered = sor.filter()
 
-    pcl.save(cloud_filtered, 'data/lamppost3.pcd')
+    pcl.save(cloud_filtered, 'data/lamppost_sor.pcd')
 
     print("initial size ", cloud.size)
     print("optimized size ", cloud_filtered.size)

@@ -1,71 +1,92 @@
 import pcl
 import pcl.pcl_visualization
 import numpy as np
+import random
 
 
 def main():
-    step = 10
+    cloud = pcl.load('data/lamppost.pcd')
 
-    viewer = pcl.pcl_visualization.PCLVisualizering()
-    cloud = pcl.load('data/stanford_bunny/data/bun090_UnStructured.pcd')
+    # параметры
+    step = 2    # размер вокселя относительно облака
+    rand_param = cloud.size // 2    # сколько точек отфильтровать
 
     arr = cloud.to_array().transpose()
 
-    xyzmin = arr.min(0)
-    xyzmax = arr.max(0)
+    x_min = arr[0].min()
+    x_max = arr[0].max()
 
-    xmin = arr[0].min()
-    xmax = arr[0].max()
+    y_min = arr[1].min()
+    y_max = arr[1].max()
 
-    ymin = arr[1].min()
-    ymax = arr[1].max()
+    z_min = arr[2].min()
+    z_max = arr[2].max()
 
-    zmin = arr[2].min()
-    zmax = arr[2].max()
+    # координаты вокселей
+    x_coords = []
+    s = np.linspace(x_min, x_max, step)
+    x_coords.append(s)
+    s = np.linspace(y_min, y_min, step)
+    x_coords.append(s)
+    s = np.linspace(z_min, z_min, step)
+    x_coords.append(s)
 
-    x_y_z = [arr[0], arr[1], arr[2]]
+    y_coords = []
+    s = np.linspace(x_min, x_min, step)
+    y_coords.append(s)
+    s = np.linspace(y_min, y_max, step)
+    y_coords.append(s)
+    s = np.linspace(z_min, z_min, step)
+    y_coords.append(s)
 
-    segments = []
-    s = np.linspace(xmin, xmax, step)
-    segments.append(s)
-    s = np.linspace(ymin, ymin, step)
-    segments.append(s)
-    s = np.linspace(zmin, zmin, step)
-    segments.append(s)
+    z_coords = []
+    s = np.linspace(x_min, x_min, step)
+    z_coords.append(s)
+    s = np.linspace(y_min, y_min, step)
+    z_coords.append(s)
+    s = np.linspace(z_min, z_max, step)
+    z_coords.append(s)
 
-    segments1 = []
-    s = np.linspace(xmin, xmin, step)
-    segments1.append(s)
-    s = np.linspace(ymin, ymax, step)
-    segments1.append(s)
-    s = np.linspace(zmin, zmin, step)
-    segments1.append(s)
+    coords = np.empty([3, step * 3])
 
-    segments2 = []
-    s = np.linspace(xmin, xmin, step)
-    segments2.append(s)
-    s = np.linspace(ymin, ymin, step)
-    segments2.append(s)
-    s = np.linspace(zmin, zmax, step)
-    segments2.append(s)
+    coords[0] = [*x_coords[0], *y_coords[0], *z_coords[0]]
+    coords[1] = [*x_coords[1], *y_coords[1], *z_coords[1]]
+    coords[2] = [*x_coords[2], *y_coords[2], *z_coords[2]]
 
-    full_seg = np.empty([3, step * 3])
+    voxel = []
+    for i in range(0, coords[0].size * coords[1].size * coords[2].size):
+        voxel.append([])
 
-    full_seg[0] = [*segments[0], *segments1[0], *segments2[0]]
-    full_seg[1] = [*segments[1], *segments1[1], *segments2[1]]
-    full_seg[2] = [*segments[2], *segments1[2], *segments2[2]]
+    # поиск координат вокселя для каждой точки
+    voxel_x = np.searchsorted(coords[0], arr[0])
+    voxel_y = np.searchsorted(coords[1], arr[1])
+    voxel_z = np.searchsorted(coords[2], arr[2])
 
-    new_cloud_arr = np.array(full_seg).astype(np.float32).transpose()
-    new_cloud = pcl.PointCloud()
-    new_cloud.from_array(new_cloud_arr)
+    # заполнение вокселей точками
+    for point in range(len(arr[0])):
+        voxel[voxel_x[point] * coords[0].size + voxel_y[point] * coords[1].size + voxel_z[point] * coords[
+            2].size].append([arr[0][point], arr[1][point], arr[2][point]])
 
-    while 1:
-        # Visualizing pointcloud
-        viewer.AddPointCloud(new_cloud, b'scene_cloud', 0)
-        viewer.AddPointCloud(cloud, b'scene_cloud1', 0)
-        viewer.SpinOnce()
-        viewer.RemovePointCloud(b'scene_cloud', 0)
-        viewer.RemovePointCloud(b'scene_cloud1', 0)
+    # прореживание вокселей
+    for i in range(len(voxel)):
+        if len(voxel[i]) > rand_param:
+            for j in range(rand_param):
+                voxel[i].remove(voxel[i][random.randint(0, len(voxel[i]) - 1)])
+
+    arr_filtered = []
+
+    filled_voxel = list(filter(None, voxel))
+    for i in range(len(filled_voxel)):
+        for j in range(len(filled_voxel[i])):
+            arr_filtered.append(filled_voxel[i][j])
+
+    cloud_filtered = pcl.PointCloud()
+    cloud_filtered.from_array(np.array(arr_filtered).astype(np.float32))
+
+    pcl.save(cloud_filtered, 'data/lamppost_rand.pcd')
+
+    print("initial size ", cloud.size)
+    print("optimized size ", cloud_filtered.size)
 
 
 if __name__ == "__main__":
